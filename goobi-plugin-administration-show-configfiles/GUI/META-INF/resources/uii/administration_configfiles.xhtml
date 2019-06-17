@@ -1,0 +1,55 @@
+<ui:composition
+    xmlns="http://www.w3.org/1999/xhtml"
+    xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+    xmlns:composite="http://xmlns.jcp.org/jsf/composite"
+    xmlns:h="http://xmlns.jcp.org/jsf/html"
+    xmlns:f="http://xmlns.jcp.org/jsf/core"
+    xmlns:x="http://myfaces.apache.org/tomahawk"
+    xmlns:intranda="http://xmlns.jcp.org/jsf/composite/composites"
+    xmlns:pt="http://xmlns.jcp.org/jsf/passthrough"
+    xmlns:p="http://primefaces.org/ui">
+
+    <composite:interface>
+    </composite:interface>
+
+    <composite:implementation>
+        <link rel="stylesheet" href="css/github.css"></link>
+        <script src="js/highlight.pack.js"></script>
+        <script>
+        	function onAjaxConfigLoad(evt) {
+        	    if(evt.status == "success") {
+        	    	document.querySelectorAll('pre code').forEach((block) => {
+        	        	hljs.highlightBlock(block);
+        	      	});
+        	    }
+        	}
+        </script>
+
+        <h:panelGroup rendered="#{!LoginForm.hasRole('administration_showconfigfiles')}">
+            <h:outputText
+                styleClass="alert alert-danger alert-dismissable margin-bottom-10 margin-top-10"
+                value="#{msgs.plugin_administration_missingPermission}"></h:outputText>
+        </h:panelGroup>
+        <h:form>
+        <h:panelGroup
+            layout="block"
+            styleClass="row"
+            id="dashboard"
+            rendered="#{LoginForm.hasRole('administration_showconfigfiles')}">
+            <div class="col-sm-6">
+	          <ui:repeat var="configFile" value="#{AdministrationForm.administrationPlugin.configFiles}">
+	          	<h:commandLink action="#{AdministrationForm.administrationPlugin.loadConfig(configFile)}">
+	          		<h:outputText value="#{configFile}"/>
+	          		<f:ajax render="@form" onevent="onAjaxConfigLoad"/>
+	          	</h:commandLink><br />
+	          </ui:repeat>
+            </div>
+            <div class="col-sm-6">
+            	<pre><code class="#{AdministrationForm.administrationPlugin.configClass}">#{AdministrationForm.administrationPlugin.currentConfig}</code></pre>
+            </div>
+        </h:panelGroup>
+        </h:form>
+
+    </composite:implementation>
+
+</ui:composition>

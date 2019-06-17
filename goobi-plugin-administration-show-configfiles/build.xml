@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+
+<project name="goobi-plugin-step-mixedocr" default="devbuild">
+	<target name="devbuild">
+		<exec executable="mvn">
+			<arg value="package" />
+		</exec>
+		<copy file="module-main/target/plugin_intranda_administration_show-configfiles.jar" todir="/opt/digiverso/goobi/plugins/administration/"/>
+		<copy file="module-gui/target/plugin_intranda_administration_show-configfiles-GUI.jar" todir="/opt/digiverso/goobi/plugins/GUI/"/>
+	</target>
+</project>
