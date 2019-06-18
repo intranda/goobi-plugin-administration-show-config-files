@@ -1,0 +1,7 @@
+<config>
+	<s3Update>
+		<enabled>true</enabled>
+		<bucket>config-bucket</bucket>
+		<prefix>goobi/config/</prefix>
+	</s3Update>
+</config>

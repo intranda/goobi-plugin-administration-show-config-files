@@ -1,0 +1,18 @@
+.active {
+	font-weight: bold;
+} 
+
+.code-box {
+	max-height: 80vh;
+	overflow: auto;
+}
+
+.code-box pre {
+	border-radius: 0;
+	margin: 0;
+}
+
+.list-box {
+	max-height: 80vh;
+	overflow: auto;
+}
