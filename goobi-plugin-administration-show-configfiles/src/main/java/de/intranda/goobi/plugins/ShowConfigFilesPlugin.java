@@ -64,7 +64,7 @@ public class ShowConfigFilesPlugin implements IAdministrationPlugin {
 
     @Override
     public String getGui() {
-        return "administration_configfiles.xhtml";
+        return "/uii/administration_configfiles.xhtml";
     }
 
     public List<String> getConfigFiles() {
