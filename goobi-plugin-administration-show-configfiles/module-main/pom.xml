@@ -8,12 +8,6 @@
 		<artifactId>show-configfiles</artifactId>
 		<version>${goobi.pluginversion}</version>
 	</parent>
-	<repositories>
-		<repository>
-			<id>intranda</id>
-			<url>https://nexus.intranda.com/repository/intranda</url>
-		</repository>
-	</repositories>
 	<build>
 		<finalName>${jar.name}</finalName>
 		<sourceDirectory>../src/main/java</sourceDirectory>
