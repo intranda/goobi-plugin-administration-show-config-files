@@ -5,9 +5,10 @@
     xmlns:h="http://xmlns.jcp.org/jsf/html"
     xmlns:f="http://xmlns.jcp.org/jsf/core"
     xmlns:x="http://myfaces.apache.org/tomahawk"
-    xmlns:intranda="http://xmlns.jcp.org/jsf/composite/composites"
+    xmlns:intranda="http://xmlns.jcp.org/jsf/composite/compositesPG"
     xmlns:pt="http://xmlns.jcp.org/jsf/passthrough"
-    xmlns:p="http://primefaces.org/ui">
+    xmlns:p="http://primefaces.org/ui"
+    xmlns:jsf="http://xmlns.jcp.org/jsf">
 
     <composite:interface>
     </composite:interface>
@@ -30,59 +31,62 @@
         </script>
 
         <h:panelGroup rendered="#{!LoginForm.hasRole('administration_showconfigfiles')}">
+			<div class="color-box bg-hot text-white d-flex flex-row p-3">
             <h:outputText
-                styleClass="alert alert-danger alert-dismissable margin-bottom-10 margin-top-10"
                 value="#{msgs.plugin_administration_missingPermission}"></h:outputText>
+			</div>
         </h:panelGroup>
         <h:form>
-        <h:panelGroup
-            layout="block"
-            styleClass="row"
-            id="dashboard"
-            rendered="#{LoginForm.hasRole('administration_showconfigfiles')}">
-			<div class="col-sm-4">
-				<div class="box box-color box-bordered">
-					<div class="box-title" id="title">
-						<h3>
-							<i class="fa fa-plug"></i>
-							<h:outputText
-								value="#{msgs.files}" />
-						</h3>
-						<h:panelGroup styleClass="actions" rendered="#{AdministrationForm.administrationPlugin.renderUpdateButton}">
-							<h:commandLink action="#{AdministrationForm.administrationPlugin.downloadConfigFromS3}" styleClass="btn btn-mini">
-								#{msgs.plugin_administration_showconfigfiles_updateConfigFromS3}
-							</h:commandLink>
-						</h:panelGroup>
-					</div>
-					<div class="box-content list-box">
-						<ui:repeat var="configFile"
-							value="#{AdministrationForm.administrationPlugin.configFiles}">
-							<h:commandLink
-								styleClass="#{AdministrationForm.administrationPlugin.currentConfig == configFile ? 'active' : ''}"
-								action="#{AdministrationForm.administrationPlugin.loadConfig(configFile)}">
-								<h:outputText value="#{configFile}" />
-								<f:ajax render="@form" onevent="onAjaxConfigLoad" />
-							</h:commandLink>
-							<br />
-						</ui:repeat>
-					</div>
+			<h:panelGroup
+				layout="block"
+				styleClass="row"
+				id="dashboard"
+				rendered="#{LoginForm.hasRole('administration_showconfigfiles')}">
+				<div class="col-sm-4">
+					<intranda:box
+						boxTitle="false"
+						boxType="neutral"
+						boxPadding="false"
+						boxForm="true">
+						<intranda:boxTitle
+							icon="fa fa-plug"
+							title="#{msgs.files}">
+							<h:panelGroup styleClass="actions" rendered="#{AdministrationForm.administrationPlugin.renderUpdateButton}">
+								<h:commandLink action="#{AdministrationForm.administrationPlugin.downloadConfigFromS3}" styleClass="btn btn-mini">
+									#{msgs.plugin_administration_showconfigfiles_updateConfigFromS3}
+								</h:commandLink>
+							</h:panelGroup>
+						</intranda:boxTitle>
+						<table class="table table-bordered table-hover">
+							<ui:repeat var="configFile"
+								value="#{AdministrationForm.administrationPlugin.configFiles}">
+								<tr>
+									<td>
+										<h:outputText value="#{configFile}" />
+									</td>
+									<td>
+										<button
+											class="btn btn-#{AdministrationForm.administrationPlugin.currentConfig == configFile ? 'primary' : 'blank'}"
+											jsf:action="#{AdministrationForm.administrationPlugin.loadConfig(configFile)}"
+											jsf:id="selectConfig">
+											<span class="fa fa-pencil" />
+											<f:ajax render="@form" onevent="onAjaxConfigLoad" />
+										</button>
+									</td>
+								</tr>
+							</ui:repeat>
+						</table>
+					</intranda:box>
 				</div>
-			</div>
-			<div class="col-sm-8">
-				<div class="box box-color box-bordered">
-					<div class="box-title" id="title">
-						<h3>
-							<i class="fa fa-file-o"></i>
-							<h:outputText
-								value="#{AdministrationForm.administrationPlugin.currentConfig}" />
-						</h3>
-					</div>
-					<div class="box-content nopadding code-box">
-	            		<pre><code class="#{AdministrationForm.administrationPlugin.configClass}">#{AdministrationForm.administrationPlugin.currentConfigContent}</code></pre>
-            		</div>
-            	</div>
-            </div>
-        </h:panelGroup>
+				<div class="col-sm-8">
+					<intranda:box
+						boxType="#{AdministrationForm.administrationPlugin.currentConfig != null ? 'primary' : 'blank'}"
+						icon="fa fa-file-o"
+						title="#{AdministrationForm.administrationPlugin.currentConfig != null ? AdministrationForm.administrationPlugin.currentConfig : msgs.noFileSelected}">
+						<pre class="border hljs"><code class="p-0 #{AdministrationForm.administrationPlugin.configClass}">#{AdministrationForm.administrationPlugin.currentConfigContent}</code></pre>
+					</intranda:box>
+				</div>
+			</h:panelGroup>
         </h:form>
 
     </composite:implementation>
