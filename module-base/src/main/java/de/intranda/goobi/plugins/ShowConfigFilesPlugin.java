@@ -4,6 +4,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -12,6 +14,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -20,11 +23,6 @@ import org.apache.commons.configuration.tree.xpath.XPathExpressionEngine;
 import org.goobi.production.enums.PluginType;
 import org.goobi.production.plugin.interfaces.IAdministrationPlugin;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.ListObjectsRequest;
-import com.amazonaws.services.s3.model.ObjectListing;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
-
 import de.sub.goobi.config.ConfigPlugins;
 import de.sub.goobi.config.ConfigurationHelper;
 import de.sub.goobi.helper.S3FileUtils;
@@ -32,11 +30,21 @@ import de.sub.goobi.helper.StorageProvider;
 import lombok.Getter;
 import lombok.extern.log4j.Log4j;
 import net.xeoh.plugins.base.annotations.PluginImplementation;
+import software.amazon.awssdk.core.ResponseInputStream;
+import software.amazon.awssdk.core.async.AsyncResponseTransformer;
+import software.amazon.awssdk.services.s3.S3AsyncClient;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
+import software.amazon.awssdk.services.s3.model.S3Object;
 
 @PluginImplementation
 @Log4j
 public class ShowConfigFilesPlugin implements IAdministrationPlugin {
-    private final static String TITLE = "intranda_administration_showconfigfiles";
+
+    private static final long serialVersionUID = -3041469758104032050L;
+    private static final String TITLE = "intranda_administration_showconfigfiles";
     private List<String> configFiles = new ArrayList<>();
     private Map<String, String> contents = new HashMap<>();
     private XMLConfiguration xmlConf;
@@ -80,11 +88,11 @@ public class ShowConfigFilesPlugin implements IAdministrationPlugin {
         if (!contents.containsKey(file)) {
             ConfigurationHelper config = ConfigurationHelper.getInstance();
             Path p = Paths.get(config.getConfigurationFolder(), file);
-            try (Stream<String> lineStream = new BufferedReader(new InputStreamReader(StorageProvider.getInstance().newInputStream(p), "utf-8"))
-                    .lines()) {
+            try (InputStreamReader r = new InputStreamReader(StorageProvider.getInstance().newInputStream(p), StandardCharsets.UTF_8);
+                    Stream<String> lineStream = new BufferedReader(r)
+                            .lines()) {
                 contents.put(file, lineStream.collect(Collectors.joining("\n")));
             } catch (IOException e) {
-                // TODO Auto-generated catch block
                 log.error(e);
             }
         }
@@ -102,32 +110,50 @@ public class ShowConfigFilesPlugin implements IAdministrationPlugin {
     }
 
     public void downloadConfigFromS3() {
-        AmazonS3 s3 = S3FileUtils.createS3Client();
-        Path dest = Paths.get(ConfigurationHelper.getInstance().getConfigurationFolder());
-        String bucket = xmlConf.getString("/s3Update/bucket");
-        String folderPrefix = xmlConf.getString("/s3Update/prefix");
-        ListObjectsRequest req = new ListObjectsRequest().withBucketName(bucket).withPrefix(folderPrefix);
-        ObjectListing listing = s3.listObjects(req);
-        for (S3ObjectSummary os : listing.getObjectSummaries()) {
-            downloadObject(s3, dest, os);
+        try (S3AsyncClient s3 = S3FileUtils.createS3Client()) {
+            Path dest = Paths.get(ConfigurationHelper.getInstance().getConfigurationFolder());
+            String bucket = xmlConf.getString("/s3Update/bucket");
+            String folderPrefix = xmlConf.getString("/s3Update/prefix");
+
+            String nextContinuationToken = null;
+            do {
+                ListObjectsV2Request.Builder requestBuilder = ListObjectsV2Request.builder()
+                        .bucket(bucket)
+                        .delimiter("/")
+                        .prefix(folderPrefix)
+                        .continuationToken(nextContinuationToken);
+
+                CompletableFuture<ListObjectsV2Response> response = s3.listObjectsV2(requestBuilder.build());
+                ListObjectsV2Response resp = response.toCompletableFuture().join();
+
+                nextContinuationToken = resp.nextContinuationToken();
+
+                List<S3Object> files = resp.contents();
+                for (S3Object object : files) {
+                    downloadObject(s3, dest, object, bucket);
+                }
+
+            } while (nextContinuationToken != null);
+
+            this.contents = new HashMap<>();
+            this.loadConfig(this.currentConfig);
+        } catch (URISyntaxException e) {
+            log.error(e);
         }
-        while (listing.isTruncated()) {
-            listing = s3.listNextBatchOfObjects(listing);
-            for (S3ObjectSummary os : listing.getObjectSummaries()) {
-                downloadObject(s3, dest, os);
-            }
-        }
-        this.contents = new HashMap<>();
-        this.loadConfig(this.currentConfig);
     }
 
-    public void downloadObject(AmazonS3 s3, Path dest, S3ObjectSummary os) {
-        String filename = os.getKey();
+    public void downloadObject(S3AsyncClient s3, Path dest, S3Object os, String bucket) {
+        String filename = os.key();
         int idx = filename.lastIndexOf('/');
         if (idx > 0) {
             filename = (filename.substring(idx + 1));
         }
-        try (InputStream in = s3.getObject(os.getBucketName(), os.getKey()).getObjectContent()) {
+        CompletableFuture<ResponseInputStream<GetObjectResponse>> responseInputStream = s3.getObject(GetObjectRequest.builder()
+                .bucket(bucket)
+                .key(os.key())
+                .build(),
+                AsyncResponseTransformer.toBlockingInputStream());
+        try (InputStream in = responseInputStream.toCompletableFuture().join()) {
             Files.copy(in, dest.resolve(filename), StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
             log.error(e);
