@@ -7,7 +7,8 @@
     xmlns:intranda="http://xmlns.jcp.org/jsf/composite/composites"
     xmlns:pt="http://xmlns.jcp.org/jsf/passthrough"
     xmlns:p="http://primefaces.org/ui"
-    xmlns:jsf="http://xmlns.jcp.org/jsf">
+    xmlns:jsf="http://xmlns.jcp.org/jsf"
+    xmlns:util="http://goobi.io/util">
 
     <composite:interface>
     </composite:interface>
@@ -48,7 +49,7 @@
 						boxPadding="false"
 						boxForm="true">
 						<intranda:boxTitle
-							icon="fa fa-plug"
+							icon="plug"
 							title="#{msgs.files}">
 							<h:panelGroup styleClass="actions" rendered="#{AdministrationForm.administrationPlugin.renderUpdateButton}">
 								<h:commandLink action="#{AdministrationForm.administrationPlugin.downloadConfigFromS3}" styleClass="btn btn-mini">
@@ -65,10 +66,10 @@
 									</td>
 									<td>
 										<button
-											class="btn btn-#{AdministrationForm.administrationPlugin.currentConfig == configFile ? 'primary' : 'blank'}"
+											class="btn btn-icon btn-#{AdministrationForm.administrationPlugin.currentConfig == configFile ? 'primary' : 'blank'}"
 											jsf:action="#{AdministrationForm.administrationPlugin.loadConfig(configFile)}"
 											jsf:id="selectConfig">
-											<span class="fa fa-pencil" />
+											<util:icon icon="pencil" />
 											<f:ajax render="@form" onevent="onAjaxConfigLoad" />
 										</button>
 									</td>
@@ -80,7 +81,7 @@
 				<div class="col-sm-8">
 					<intranda:box
 						boxType="#{AdministrationForm.administrationPlugin.currentConfig != null ? 'primary' : 'blank'}"
-						icon="fa fa-file-o"
+						icon="file"
 						title="#{AdministrationForm.administrationPlugin.currentConfig != null ? AdministrationForm.administrationPlugin.currentConfig : msgs.noFileSelected}">
 						<pre class="border hljs"><code class="p-0 #{AdministrationForm.administrationPlugin.configClass}">#{AdministrationForm.administrationPlugin.currentConfigContent}</code></pre>
 					</intranda:box>
